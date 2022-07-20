@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="./wasm_exec_tiny.js"></script>
+</head>
+
+<body>
+
+  <script>
+    // polyfill
+    if (!WebAssembly.instantiateStreaming) {
+      WebAssembly.instantiateStreaming = async (resp, importObject) => {
+        const source = await (await resp).arrayBuffer()
+        return await WebAssembly.instantiate(source, importObject)
+      }
+    }
+
+    function loadWasm (path) {
+      const go = new Go()
+
+      go.importObject.env["syscall/js.finalizeRef"] = () => { }
+
+      return new Promise((resolve, reject) => {
+        WebAssembly.instantiateStreaming(fetch(path), go.importObject)
+          .then(result => {
+            go.run(result.instance)
+            resolve(result.instance)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    }
+
+    // console.log("main.wasm is loaded 👋")
+    // console.log(Hello("Bob Morane123"))
+    // console.log(onInput("Bob Morane123"))
+
+
+    loadWasm("main-tiny.wasm").then(wasm => {
+      const o = {
+        name: 'adley',
+        age: 18,
+        data: [12, 32, 'dasd']
+      }
+
+      console.log(sign(JSON.stringify(o)))
+    }).catch(error => {
+      console.log("ouch", error)
+    }) 
+  </script>
+
+  <script>
+    // const go = new Go(); // wasm_exec.js 中的定义
+
+    // // console.log(go);
+
+    // WebAssembly.instantiateStreaming(fetch('./main-tiny.wasm'), go.importObject)
+    //   .then(res => {
+
+    //     console.log(res.instance.exports);
+    //     go.run(res.instance); // 执行 go main 方法
+
+    //     const add = res.instance.exports.add;
+    //     console.log(add(12, 5));
+
+    //     const multiply = res.instance.exports.multiply;
+    //     console.log(multiply(12, 5));
+
+    //     const hello = res.instance.exports.hello;
+    //     console.log(hello());
+
+    //     const sign = res.instance.exports.sign2;
+    //     console.log(12, sign("hjkfhdsjk"))
+    //   });
+  </script>
+</body>
+
+</html>
